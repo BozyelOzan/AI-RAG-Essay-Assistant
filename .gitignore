@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+config/config.py
+.env
+.DS_Store
+vector_db/
+chroma_db/
+logs/
+*.log
+.vscode/
+.idea/
+data/raw/*.pdf

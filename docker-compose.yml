@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  rag-assistant:
+    build: .
+    container_name: ai_rag_assistant
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./vector_db:/app/vector_db
+      - ./config:/app/config
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    restart: unless-stopped
