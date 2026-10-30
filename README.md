@@ -1,55 +1,280 @@
-# 🧬 GenAI Research Assistant: RAG & API Integration
+# 🧬 AI Research Assistant: RAG over Academic Papers
 
-This project is a high-performance, **Production-Grade RAG (Retrieval-Augmented Generation)** assistant designed to analyze complex technical documents and academic papers.
+A Retrieval-Augmented Generation (RAG) chatbot that answers questions about your own PDF papers. Answers are grounded in the uploaded documents, cite their source file and page, and can be given in English or Turkish.
 
-It utilizes a **hybrid architecture** that combines the speed of local vectorization with the cognitive power of Cloud APIs. By leveraging the **Groq API** for inference and **optimized local embeddings**, it allows users to "chat" with their PDF documents with extremely low latency.
-
----
-
-## 🚀 Architecture & Workflow
-
-The system follows a strict technical pipeline designed for efficiency and accuracy:
-
-1. **Data Ingestion:** PDF documents are loaded from the `data/raw` directory and split into semantic chunks.
-2. **Efficient Vectorization:** Text chunks are converted into vector embeddings using the lightweight and fast **`sentence-transformers/all-MiniLM-L6-v2`** model. This runs locally on the CPU with minimal resource usage.
-3. **Vector Store (ChromaDB):** Embeddings are persisted locally in a vector database for retrieval.
-4. **Retrieval & Context Injection:** Relevant context is retrieved based on user queries (Similarity Search).
-5. **LLM Generation:** The retrieved context and the user prompt are sent to the **Llama-3.3-70b** model (via Groq API) to generate an evidence-based answer.
-
-### 🌟 Key Features
-
-- **API & RAG Fusion:** Combines the general knowledge of Large Language Models with your private data.
-- **Optimized Performance:** Uses `all-MiniLM-L6-v2` for fast CPU-based embedding generation, making the Docker image lightweight.
-- **One-Click Setup:** Includes automated scripts (`.sh` and `.bat`) for instant local environment setup.
-- **Evidence-Based Answers:** The assistant cites the specific source files used to generate the response.
-- **Context-Aware Memory:** Maintains chat history to support follow-up questions and conversational flow.
+The pipeline combines **local embeddings and reranking** (no API cost) with a **hosted LLM** (Groq or OpenAI, selectable via configuration).
 
 ---
 
-## 📸 Screenshots & Demo
+## Key Features
 
-Here the system is demonstrated handling queries in multiple languages across different technical domains.
-
-### 1. Foundational Biomedical Knowledge (English)
-
-The model accurately retrieves information to explain core biomedical segmentation architectures like U-Net.
-![U-Net English Demo](assets/unet_eng_black.png)
-
-### 2. Multilingual Support (Turkish)
-
-The system is capable of understanding and responding to technical queries in different languages, such as explaining YOLOv1 in Turkish.
-![YOLO Turkish Demo](assets/yolov1_tr_black.png)
-
-### 3. Advanced Concepts & Light Mode UI
-
-Handling specialized queries about evolving architectures like U-Net++, shown in the system's light theme interface.
-![U-Net++ Light Mode Demo](assets/white_chat.png)
+- **Grounded answers with citations:** every answer lists the source file, page number and retrieval score.
+- **Two-stage retrieval:** a wide vector search (top-60) followed by a cross-encoder reranker (`BAAI/bge-reranker-base`) that keeps the best 5 chunks.
+- **Conversational memory:** follow-up questions are rewritten into standalone queries before retrieval.
+- **Provider choice:** run with the Groq free tier or with an OpenAI API key, changed with a single environment variable.
+- **Incremental indexing:** PDFs added to the data folder are indexed on the next start; existing chunks are not re-processed.
+- **Bilingual:** questions in Turkish get Turkish answers, English questions get English answers.
+- **Reproducible setup:** Docker Compose, or one-click scripts for Windows and Linux/macOS.
+- **Measured quality:** an automated evaluation covering retrieval (Hit@5, MRR), answer faithfulness, relevance and refusal behaviour, plus unit tests (see [Evaluation](#evaluation)).
 
 ---
 
-## 📚 Dataset & References
+## Architecture
 
-This project utilizes a comprehensive collection of academic papers, ranging from foundational Deep Learning architectures to state-of-the-art Object Detection (YOLO series) and Segmentation models.
+```
+PDFs (data/raw)
+   │
+   ▼
+Parsing (LlamaIndex SimpleDirectoryReader + pypdf)
+   │
+   ▼
+Chunking (512 tokens) → Embeddings (all-MiniLM-L6-v2, local CPU)
+   │
+   ▼
+ChromaDB (persistent vector store)
+   │
+   ▼  question
+Condense question (follow-ups) → Vector search (top-60)
+   │
+   ▼
+Reranker (bge-reranker-base, local) → top-5 chunks
+   │
+   ▼
+LLM (Groq or OpenAI) → answer with sources
+```
+
+---
+
+## Tech Stack
+
+| Component       | Technology                                   |
+| --------------- | -------------------------------------------- |
+| Orchestration   | LlamaIndex (`condense_plus_context` engine)  |
+| LLM             | Groq (`openai/gpt-oss-120b`) or OpenAI (`gpt-4o-mini`) |
+| Embeddings      | `sentence-transformers/all-MiniLM-L6-v2` (local) |
+| Reranker        | `BAAI/bge-reranker-base` (local)             |
+| Vector database | ChromaDB (persistent, local)                 |
+| PDF parsing     | pypdf via LlamaIndex PDF reader              |
+| Frontend        | Streamlit                                    |
+| Deployment      | Docker / Docker Compose                      |
+
+---
+
+## Getting Started
+
+### 1. Prerequisites
+
+- An API key from **one** of the following providers:
+  - **Groq** (free tier available): <https://console.groq.com>
+  - **OpenAI** (pay-as-you-go): <https://platform.openai.com>
+- Either Docker Desktop, or Python 3.11+ for the local setup.
+
+### 2. Configure
+
+Copy the example environment file and fill in your key:
+
+```bash
+cp .env.example .env        # Windows: copy .env.example .env
+```
+
+Then edit `.env`:
+
+```env
+LLM_PROVIDER=groq            # or: openai
+GROQ_API_KEY=gsk_...         # required when LLM_PROVIDER=groq
+OPENAI_API_KEY=sk-...        # required when LLM_PROVIDER=openai
+LLM_MODEL_NAME=              # optional; defaults to the provider's model (see below)
+```
+
+The `.env` file is ignored by git and excluded from the Docker image, so your keys stay local.
+
+### 3. Add your papers
+
+Place PDF files in `data/raw/`. The folder is created automatically on first run.
+
+### 4. Run
+
+**Option A: Docker (recommended)**
+
+```bash
+docker compose up --build
+```
+
+Open <http://localhost:8501>.
+
+**Option B: One-click scripts**
+
+- Windows: double-click `run_windows.bat`
+- Linux / macOS: `chmod +x run_linux.sh && ./run_linux.sh`
+
+The scripts create a virtual environment, install dependencies, build the vector index and start the Streamlit app.
+
+**Option C: Manual**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python src/data_ingestion.py       # builds or updates the index
+streamlit run app.py
+```
+
+> The first run downloads the local embedding model (~90 MB) and the reranker (~1 GB). Later runs use the cached copies.
+
+---
+
+## Configuration
+
+| Variable               | Default                                | Description                                   |
+| ---------------------- | -------------------------------------- | --------------------------------------------- |
+| `LLM_PROVIDER`         | `groq`                                 | `groq` or `openai`                            |
+| `GROQ_API_KEY`         | —                                      | Required when `LLM_PROVIDER=groq`             |
+| `OPENAI_API_KEY`       | —                                      | Required when `LLM_PROVIDER=openai`           |
+| `LLM_MODEL_NAME`       | `openai/gpt-oss-120b` (groq) / `gpt-4o-mini` (openai) | Chat model                    |
+| `EMBEDDING_MODEL_NAME` | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model                       |
+| `RERANKER_MODEL_NAME`  | `BAAI/bge-reranker-base`               | Local reranker model                          |
+| `CHUNK_SIZE`           | `512`                                  | Chunk size in tokens                          |
+| `SIMILARITY_TOP_K`     | `60`                                   | Candidates retrieved before reranking         |
+| `RERANK_TOP_N`         | `5`                                    | Chunks passed to the LLM                      |
+| `DATA_FILE`            | `data/raw`                             | Folder with PDF files                         |
+| `VECTOR_DB_FILE`       | `vector_db`                            | ChromaDB storage folder                       |
+
+> **Changing the embedding model** requires deleting `vector_db/` and re-indexing, because vectors from different models are not comparable.
+
+---
+
+## Evaluation
+
+The evaluation runner exercises the same pipeline as the app (index → vector search → reranker → chat engine → LLM) on a labelled test set.
+
+**Test set** (`tests/test_questions.json`): 37 questions in English and Turkish over 10 papers.
+
+- **33 in-scope questions** across ResNet, YOLOv1, U-Net, Adam, Transformer, SENet, RAG, LoRA, ViT and SAM. Each question records the expected paper and expected keywords.
+- **4 out-of-scope questions** (a football result, the weather, a Python how-to, a cooking recipe). The correct behaviour is to refuse, because the papers do not contain these answers.
+
+### Metrics
+
+| Metric | What it measures | How it is computed |
+| ------ | ---------------- | ------------------ |
+| Hit@5 | Is a relevant chunk among the top 5? | A chunk is *relevant* if it comes from the expected paper and contains an expected keyword. Reported for raw vector search and after reranking (what the LLM sees). |
+| Hit@60 | Is a relevant chunk among the 60 candidates? | Same definition, over the raw vector search results. |
+| MRR | How high is the first relevant chunk? | Mean reciprocal rank, for raw and reranked lists. |
+| Keyword hit | Does the answer contain an expected term? | Case-insensitive substring check (English and Turkish terms). |
+| Faithfulness | Is every claim supported by the retrieved context? | LLM-as-judge (the app's own LLM), JSON output. |
+| Relevance | Does the answer address the question? | LLM-as-judge. |
+| Refusal | Does the system refuse out-of-scope questions? | Phrase check in English and Turkish. |
+| Latency | Where does the time go? | Vector retrieval, reranking and end-to-end time per question. |
+
+**Run it:**
+
+```bash
+python tests/run_eval.py                                          # full set
+python tests/run_eval.py --only en_out_of_scope_worldcup          # subset, merged into results.json
+```
+
+Results, including every answer, its sources and per-question scores, are written to `tests/results.json`.
+
+**Unit tests** (no API calls, 14 tests covering error messages, configuration validation, PDF discovery and evaluation helpers):
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest tests -q
+```
+
+### Results
+
+Run on **2026-10-30** with `LLM_PROVIDER=openai`, model `gpt-4o-mini`, reranker `BAAI/bge-reranker-base`, embeddings `all-MiniLM-L6-v2`. The index contains the 10 papers listed in the [Dataset](#dataset) section, indexed incrementally.
+
+| Metric | Result |
+| ------ | ------ |
+| Questions passed | **35 / 37** |
+| Hit@5, vector search only | 84.8 % |
+| Hit@5, after reranking | **93.9 %** |
+| Hit@60, vector search | 100 % |
+| MRR, vector search → after reranking | 0.643 → **0.789** |
+| Keyword hit (in-scope) | 100 % (33 / 33) |
+| Faithfulness (LLM-as-judge) | 97 % (32 / 33) |
+| Relevance (LLM-as-judge) | 100 % (33 / 33) |
+| Refusal (out-of-scope) | **100 % (4 / 4)** |
+| Latency per question | median 18.7 s, p90 20.9 s |
+| Of which: reranking (CPU) | mean 13.6 s |
+| Of which: vector retrieval | mean 0.02 s |
+
+The reranker roughly doubles MRR and raises Hit@5 by about 9 points, while the vector search alone already finds a relevant chunk within the top 60 for every in-scope question.
+
+### Failure analysis
+
+- **`tr_transformer_encoder`** (Turkish, "How many identical layers does the encoder have?"): the answer is correct ("6 özdeş katman"), but the judge marked it as not fully faithful. The cause was not investigated further. The relevant chunk was also missing from the reranked top 5.
+- **`en_senet_squeeze`** (English, "What does the squeeze operation compute?"): the answer is correct and matches the paper, but the expected chunk missed the reranked top 5 in this run. It was found in the previous run, so this part of retrieval is not fully deterministic.
+
+### Changes between runs
+
+An earlier run of the same 37 questions passed 33 / 37 (`tests/results_before_prompt_fix.json`). Two changes were made before the final run:
+
+1. **System prompt tightened.** Two out-of-scope questions were answered from general knowledge (a Python sorting how-to and a pasta recipe). The prompt now requires answers to come only from the context. Refusal went from 2 / 4 to 4 / 4.
+2. **Two keyword lists broadened after reading the answers.** The answers to "How many attention heads…" and "How many encoder layers…" were correct, but the lists only contained the written-out forms ("eight", "six"). The keywords "8" and "6" were added. This was done after seeing the results, so it reflects test tuning rather than an independent check.
+
+### Limitations
+
+- **Small test set.** 37 questions over 10 papers is a development-level evaluation. It shows the pipeline works on these documents; it is not a general benchmark.
+- **Judge bias.** Faithfulness and relevance are judged by the same LLM family that generates the answers, so the scores can be optimistic. Keyword checks are heuristic.
+- **Single run.** LLM output and retrieval ties can vary between runs; results come from one run per configuration.
+- **Latency.** Reranking on CPU dominates response time. The numbers were measured on a CPU-only machine and have not been tested on a GPU.
+
+---
+
+## Known Limitations
+
+- On rate-limit responses, the OpenAI-compatible SDK waits and retries before failing, so the user may wait a long time before seeing the "rate limit reached" message.
+- With the Groq free tier, the default model has a daily token limit (200,000 tokens) and a per-minute limit. Heavy use or evaluation runs can exhaust it; the OpenAI provider does not have this constraint in the same way.
+- Deleting a PDF from `data/raw/` does not remove its chunks from the index. Delete `vector_db/` and re-run ingestion to rebuild.
+- No authentication: the app is intended for local or private use.
+
+---
+
+## Project Structure
+
+```text
+AI-RAG-Essay-Assistant/
+├── app.py                     # Streamlit frontend
+├── config/
+│   ├── __init__.py
+│   └── settings.py            # Reads configuration from .env
+├── src/
+│   ├── data_ingestion.py      # PDF parsing, chunking, indexing, incremental updates
+│   ├── engine.py              # Chat engine construction and CLI mode
+│   ├── llm_setup.py           # Groq / OpenAI LLM and embedding model setup
+│   ├── prompts.py             # System prompt
+│   ├── retriever.py           # Reranker configuration
+│   └── utils/
+│       ├── errors.py          # User-facing messages for provider errors
+│       └── logger.py          # Logging (console and logs/app.log)
+├── scripts/
+│   ├── debug_retrieval.py     # Inspect vector search and reranker results
+│   └── inspect_file.py        # Check which files are in the vector database
+├── tests/
+│   ├── test_questions.json    # Labelled evaluation set (37 questions)
+│   ├── run_eval.py            # Evaluation runner (retrieval, judge, latency)
+│   ├── test_units.py          # Unit tests (no API calls)
+│   ├── results.json           # Latest evaluation results
+│   └── results_before_prompt_fix.json  # Earlier run, kept for comparison
+├── data/raw/                  # Your PDF files (not tracked by git)
+├── vector_db/                 # ChromaDB storage (generated)
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── requirements-dev.txt       # Adds pytest for running the tests
+├── run_linux.sh
+└── run_windows.bat
+```
+
+---
+
+## Dataset
+
+The evaluation index uses the 10 papers below. The others are listed as references for further experiments. The PDFs are not included in the repository; download them from arXiv and place them in `data/raw/`.
+
+**Papers used in the evaluation:** U-Net, ResNet, YOLOv1, Adam, Transformer, SENet, RAG, LoRA, ViT, SAM.
 
 | Paper Title                                                                         | Topic              | Year   | Link                                           |
 | :---------------------------------------------------------------------------------- | :----------------- | :----- | :--------------------------------------------- |
@@ -76,107 +301,26 @@ This project utilizes a comprehensive collection of academic papers, ranging fro
 | **Segment Anything (SAM)**                                                          | Segmentation       | 2023   | [2304.02643](https://arxiv.org/abs/2304.02643) |
 | **YOLOv9: Learning What You Want to Learn Using Programmable Gradient Information** | Object Detection   | 2024   | [2402.13616](https://arxiv.org/abs/2402.13616) |
 | **YOLOv10: Real-Time End-to-End Object Detection**                                  | Object Detection   | 2024   | [2405.14458](https://arxiv.org/abs/2405.14458) |
-| _Other Technical Reports_                                                           | _Deep Learning_    | _Misc_ | [arXiv Index](https://arxiv.org/)              |
-
-## 🛠️ Installation & Setup
-
-### 0. Prerequisites (API Key)
-
-You need a Groq API Key to run the inference engine.
-
-1. Rename `config/config_example.py` to `config.py`.
-2. Paste your API key inside the file:
-
-```python
-# config/config.py
-GROQ_API_KEY = "gsk_..."
-
-```
-
-### Method 1: Running with Docker (Recommended) 🐳
-
-This is the cleanest method. You do not need Python installed, only Docker Desktop.
-
-```bash
-# 1. Build and Start the Container
-docker compose up --build
-
-# 2. Access the Application
-# Open your browser and go to: http://localhost:8501
-
-```
-
-### Method 2: Automated Local Setup (Quick Start) ⚡
-
-If you prefer running locally without Docker, use the provided automation scripts. These scripts automatically handle virtual environment creation, dependency installation, data ingestion, and app launch.
-
-**For Linux / macOS Users:**
-
-```bash
-# Give execution permission (only once)
-chmod +x run_linux.sh
-
-# Run the script
-./run_linux.sh
-
-```
-
-**For Windows Users:**
-Simply double-click the **`run_windows.bat`** file.
-
-_Note: Ensure you have placed your PDF files in the `data/raw/` directory before running the scripts._
 
 ---
 
-## 📂 Project Structure
+## Screenshots
 
-```text
-rag-genai-assistant/
-├── config/             # Configuration files and API Keys
-├── data/
-│   └── raw/            # Upload your PDF documents here
-├── logs/               # System logs (Ingestion and Chat history)
-├── src/
-│   ├── data_ingestion.py  # Handles document loading and embedding generation
-│   ├── engine.py          # Core logic for the Chat Engine
-│   ├── llm_setup.py       # Initialization of Groq API and Embedding models
-│   ├── retriever.py       # Custom retrieval logic
-│   └── utils/
-│       └── logger.py      # Centralized logging configuration
-├── vector_db/          # Persistent storage for ChromaDB
-├── app.py              # Streamlit Frontend Application
-├── docker-compose.yml  # Docker orchestration file
-├── Dockerfile          # Optimized Docker image definition
-├── run_linux.sh        # Automated setup script for Linux/Mac
-└── run_windows.bat     # Automated setup script for Windows
+**English question with a cited answer (ResNet)**
+![English answer demo](assets/demo_en_resnet.png)
 
-```
+**Turkish question, answered in Turkish (U-Net)**
+![Turkish answer demo](assets/demo_tr_unet.png)
 
 ---
 
-## 🧪 Tech Stack
+## Author
 
-| Component           | Technology           | Description                                       |
-| ------------------- | -------------------- | ------------------------------------------------- |
-| **LLM Inference**   | Meta Llama 3.3 (70B) | Powered by Groq API for ultra-fast generation.    |
-| **Orchestration**   | LlamaIndex           | Framework for connecting LLMs with external data. |
-| **Vector DB**       | ChromaDB             | Open-source embedding database.                   |
-| **Embedding Model** | **all-MiniLM-L6-v2** | High-speed, CPU-friendly sentence transformer.    |
-| **Frontend**        | Streamlit            | Interactive web interface.                        |
-| **Deployment**      | Docker               | Containerization and environment isolation.       |
+**Ozan Bozyel**: Biomedical & Deep Learning Engineer
 
----
+- LinkedIn: [Ozan Bozyel](https://www.linkedin.com/in/ozan-bozyel)
+- GitHub: [BozyelOzan](https://github.com/BozyelOzan)
 
-## 📧 Contact
+## License
 
-**Developer:** Ozan Bozyel
-
-**Role:** Biomedical & Deep Learning Engineer
-
-**LinkedIn:** [Ozan Bozyel](https://www.linkedin.com/in/ozan-bozyel)
-
-**GitHub:** [BozyelOzan](https://github.com/BozyelOzan)
-
----
-
-_This project is open-source and intended for educational and research purposes._
+Released under the [MIT License](LICENSE).

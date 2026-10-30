@@ -1,0 +1,49 @@
+[
+  {"id": "en_resnet_idea", "lang": "en", "question": "What is the main idea of residual learning in ResNet?", "expected_source": "resnet", "expected_keywords": ["residual", "identity", "shortcut"]},
+  {"id": "en_resnet_degradation", "lang": "en", "question": "What problem does the degradation observed in very deep plain networks describe?", "expected_source": "resnet", "expected_keywords": ["degradation"]},
+  {"id": "en_resnet_bottleneck", "lang": "en", "question": "What is a bottleneck block in ResNet?", "expected_source": "resnet", "expected_keywords": ["bottleneck", "1×1", "1x1"]},
+  {"id": "tr_resnet_shortcut", "lang": "tr", "question": "ResNet'te shortcut bağlantılar ne işe yarar?", "expected_source": "resnet", "expected_keywords": ["residual", "kimlik", "identity", "atla", "shortcut", "artık"]},
+
+  {"id": "en_yolo_grid", "lang": "en", "question": "How does YOLOv1 divide the input image?", "expected_source": "yolo", "expected_keywords": ["grid", "S×S", "S x S", "cell"]},
+  {"id": "en_yolo_dataset", "lang": "en", "question": "On which dataset was YOLOv1 evaluated?", "expected_source": "yolo", "expected_keywords": ["PASCAL", "VOC"]},
+  {"id": "en_yolo_bbox", "lang": "en", "question": "What does each grid cell predict in YOLOv1?", "expected_source": "yolo", "expected_keywords": ["bounding box", "confidence"]},
+  {"id": "tr_yolo_grid", "lang": "tr", "question": "YOLOv1 bir görüntüyü nasıl işler, grid yapısı nedir?", "expected_source": "yolo", "expected_keywords": ["grid", "ızgara", "S×S", "S x S", "hücre", "cell"]},
+
+  {"id": "en_unet_contracting", "lang": "en", "question": "What is the purpose of the contracting path in U-Net?", "expected_source": "unet", "expected_keywords": ["context", "contract"]},
+  {"id": "en_unet_merge", "lang": "en", "question": "How does U-Net combine features from the encoder and decoder?", "expected_source": "unet", "expected_keywords": ["concatenat", "crop"]},
+  {"id": "en_unet_biomedical", "lang": "en", "question": "What kind of data was U-Net designed for?", "expected_source": "unet", "expected_keywords": ["biomedical"]},
+  {"id": "tr_unet_expanding", "lang": "tr", "question": "U-Net'in genişletme (expanding) yolunda ne olur?", "expected_source": "unet", "expected_keywords": ["up", "genişlet", "artır", "expanding", "upsampl"]},
+
+  {"id": "en_adam_moments", "lang": "en", "question": "How does Adam estimate the first and second moments of the gradients?", "expected_source": "adam", "expected_keywords": ["exponential", "moment"]},
+  {"id": "en_adam_bias", "lang": "en", "question": "What bias correction does Adam apply to its moment estimates?", "expected_source": "adam", "expected_keywords": ["bias-correct", "bias correct"]},
+  {"id": "tr_adam_amac", "lang": "tr", "question": "Adam optimizasyon algoritması ne için kullanılır?", "expected_source": "adam", "expected_keywords": ["stochastic", "stokastik", "gradient", "gradyan"]},
+
+  {"id": "en_transformer_core", "lang": "en", "question": "What is the core mechanism of the Transformer architecture?", "expected_source": "transformer", "expected_keywords": ["attention"]},
+  {"id": "en_transformer_heads", "lang": "en", "question": "How many attention heads does the base Transformer model use?", "expected_source": "transformer", "expected_keywords": ["eight", "h = 8", "8 attention", "8 heads"]},
+  {"id": "en_transformer_position", "lang": "en", "question": "Why does the Transformer add positional encodings?", "expected_source": "transformer", "expected_keywords": ["positional", "sinusoid"]},
+  {"id": "tr_transformer_encoder", "lang": "tr", "question": "Transformer'ın kodlayıcısı kaç özdeş katmandan oluşur?", "expected_source": "transformer", "expected_keywords": ["six", "N = 6", "6 özdeş", "6 katman"]},
+
+  {"id": "en_senet_squeeze", "lang": "en", "question": "What does the squeeze operation in SENet compute?", "expected_source": "senet", "expected_keywords": ["global average pooling"]},
+  {"id": "tr_senet_amac", "lang": "tr", "question": "Squeeze-and-Excitation bloğu neyi modellemeyi amaçlar?", "expected_source": "senet", "expected_keywords": ["interdependenc", "channel", "kanal"]},
+
+  {"id": "en_rag_components", "lang": "en", "question": "What two components does the RAG model combine?", "expected_source": "rag", "expected_keywords": ["parametric", "non-parametric"]},
+  {"id": "en_rag_datasets", "lang": "en", "question": "Which open-domain QA datasets is RAG evaluated on?", "expected_source": "rag", "expected_keywords": ["Natural Questions", "TriviaQA", "WebQuestions"]},
+  {"id": "tr_rag_bilesen", "lang": "tr", "question": "RAG yaklaşımı hangi iki bileşeni birleştirir?", "expected_source": "rag", "expected_keywords": ["parametrik", "parametric", "non-parametric"]},
+
+  {"id": "en_lora_rank", "lang": "en", "question": "How does LoRA reduce the number of trainable parameters?", "expected_source": "lora", "expected_keywords": ["low-rank", "rank decomposition"]},
+  {"id": "en_lora_latency", "lang": "en", "question": "Does LoRA add inference latency compared to the original model?", "expected_source": "lora", "expected_keywords": ["latency", "inference"]},
+  {"id": "tr_lora_amac", "lang": "tr", "question": "LoRA yöntemi neden kullanılır?", "expected_source": "lora", "expected_keywords": ["parameter", "parametre", "low-rank", "düşük"]},
+
+  {"id": "en_vit_patch", "lang": "en", "question": "How does the Vision Transformer split an image before the transformer encoder?", "expected_source": "vit", "expected_keywords": ["patch"]},
+  {"id": "en_vit_conv", "lang": "en", "question": "Does the Vision Transformer rely on convolutions?", "expected_source": "vit", "expected_keywords": ["convolution"]},
+  {"id": "tr_vit_ne", "lang": "tr", "question": "Vision Transformer görüntüleri nasıl işler?", "expected_source": "vit", "expected_keywords": ["patch", "yama"]},
+
+  {"id": "en_sam_components", "lang": "en", "question": "What are the main components of the Segment Anything model?", "expected_source": "sam", "expected_keywords": ["image encoder", "prompt encoder", "mask decoder"]},
+  {"id": "en_sam_dataset", "lang": "en", "question": "What is the SA-1B dataset?", "expected_source": "sam", "expected_keywords": ["SA-1B", "11M", "billion"]},
+  {"id": "tr_sam_amac", "lang": "tr", "question": "Segment Anything modelinin amacı nedir?", "expected_source": "sam", "expected_keywords": ["segment", "segmentasyon"]},
+
+  {"id": "en_out_of_scope_worldcup", "lang": "en", "question": "Who won the 2018 FIFA World Cup?", "expected_source": null, "expected_keywords": [], "should_refuse": true},
+  {"id": "tr_out_of_scope_weather", "lang": "tr", "question": "Bugün İstanbul'da hava nasıl?", "expected_source": null, "expected_keywords": [], "should_refuse": true},
+  {"id": "en_out_of_scope_python", "lang": "en", "question": "How do I sort a list in Python?", "expected_source": null, "expected_keywords": [], "should_refuse": true},
+  {"id": "tr_out_of_scope_yemek", "lang": "tr", "question": "Makarna nasıl pişirilir?", "expected_source": null, "expected_keywords": [], "should_refuse": true}
+]

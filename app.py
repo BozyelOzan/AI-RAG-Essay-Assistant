@@ -5,11 +5,32 @@ from src.utils.logger import get_logger
 
 logger = get_logger("StreamlitApp")
 
-from src.engine import get_chat_engine
+from src.data_ingestion import load_data
+from src.engine import create_chat_engine
+from src.retriever import get_postprocessors
+from src.utils.errors import friendly_error_message
+
+from config.settings import (
+    DATA_FILE,
+    EMBEDDING_MODEL_NAME,
+    LLM_MODEL_NAME,
+    LLM_PROVIDER,
+    RERANK_TOP_N,
+)
 
 st.set_page_config(
     page_title="AI Research Assistant", page_icon="🧬", layout="centered"
 )
+
+
+@st.cache_resource(show_spinner="Engine is starting...")
+def load_resources():
+    # Shared across sessions: the index and reranker are heavy to load.
+    # Chat engines are created per session so chat memory is not shared.
+    index = load_data()
+    if index is None:
+        raise RuntimeError("No PDF files found in the data folder.")
+    return index, get_postprocessors(top_k=RERANK_TOP_N)
 
 
 def main():
@@ -22,34 +43,36 @@ def main():
     with st.sidebar:
         st.header("📂 **Document Status**")
         try:
-            if not os.path.exists("data/raw"):
-                os.makedirs("data/raw")
+            if not os.path.exists(DATA_FILE):
+                os.makedirs(DATA_FILE)
 
-            files = os.listdir("data/raw")
+            files = sorted(os.listdir(DATA_FILE))
             if files:
-                st.success(f"{len(files)} articles have been indexed.")
+                st.success(f"{len(files)} file(s) in the data folder.")
                 st.markdown("**Uploaded Papers:**")
                 for f in files:
                     st.code(f, language="text")
             else:
                 st.error("No documents have been uploaded yet!")
                 logger.warning(
-                    "⚠️ Sidebar: The `data/raw` directory appears to be empty."
+                    f"⚠️ Sidebar: The data folder '{DATA_FILE}' appears to be empty."
                 )
         except Exception as e:
             logger.error(f"❌ Error while loading the sidebar: {e}")
             st.error("Failed to load the file list.")
 
         st.divider()
-        st.info("Model: Llama-3.3-70b (Groq)\nEmbedding: all-MiniLM-L6-v2")
+        st.info(
+            f"Model: {LLM_MODEL_NAME} ({LLM_PROVIDER})\nEmbedding: {EMBEDDING_MODEL_NAME}"
+        )
 
     if "chat_engine" not in st.session_state:
         logger.info("⚙️ Chat Engine (Session) is starting...")
 
         try:
-            with st.spinner("Engine is starting..."):
-                st.session_state.chat_engine = get_chat_engine()
-                logger.info("✅ Chat Engine successfully loaded into session_state.")
+            index, postprocessors = load_resources()
+            st.session_state.chat_engine = create_chat_engine(index, postprocessors)
+            logger.info("✅ Chat Engine successfully loaded into session_state.")
         except Exception as e:
             logger.critical(f"❌ Engine failed to start: {e}")
             st.error(
@@ -80,7 +103,8 @@ def main():
             with st.spinner("Scanning documents..."):
                 try:
                     response = st.session_state.chat_engine.chat(prompt)
-                    st.markdown(response.response)
+                    answer = response.response
+                    st.markdown(answer)
                     logger.info("🤖 AI response successfully generated and displayed.")
 
                     with st.expander("📚 Sources Used (Evidence)"):
@@ -98,11 +122,10 @@ def main():
 
                 except Exception as e:
                     logger.error(f"❌ Error generating response: {e}")
-                    st.error("An error occurred. Please try again.")
+                    answer = friendly_error_message(e)
+                    st.error(answer)
 
-        st.session_state.messages.append(
-            {"role": "assistant", "content": response.response}
-        )
+        st.session_state.messages.append({"role": "assistant", "content": answer})
 
 
 if __name__ == "__main__":

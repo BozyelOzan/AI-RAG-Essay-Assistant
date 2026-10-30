@@ -3,17 +3,17 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' 
+NC='\033[0m'
 
 echo -e "${GREEN}==============================================${NC}"
 echo -e "${GREEN}   🧬 AI Research Assistant - Setup & Run  ${NC}"
 echo -e "${GREEN}==============================================${NC}"
 
-if [ ! -f "config/config.py" ]; then
-    echo -e "${YELLOW}[WARNING] 'config.py' file not found!${NC}"
-    echo -e "${YELLOW}Copying 'config_example.py'...${NC}"
-    cp config/config_example.py config/config.py
-    echo -e "${RED}[STOPPED] Please open 'config/config.py', fill in the GROQ_API_KEY field, and run the script again.${NC}"
+if [ ! -f ".env" ]; then
+    echo -e "${YELLOW}[WARNING] '.env' file not found!${NC}"
+    echo -e "${YELLOW}Copying '.env.example'...${NC}"
+    cp .env.example .env
+    echo -e "${RED}[STOPPED] Please open '.env', set LLM_PROVIDER and the matching API key (GROQ_API_KEY or OPENAI_API_KEY), and run the script again.${NC}"
     exit 1
 fi
 

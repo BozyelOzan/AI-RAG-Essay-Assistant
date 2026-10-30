@@ -20,9 +20,15 @@ def get_logger(name):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    file_handler = logging.FileHandler(os.path.join(log_dir, "app.log"))
+    file_handler = logging.FileHandler(
+        os.path.join(log_dir, "app.log"), encoding="utf-8"
+    )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+    # Windows consoles may use a legacy code page (e.g. cp1254) that cannot
+    # encode the emojis used in log messages.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)

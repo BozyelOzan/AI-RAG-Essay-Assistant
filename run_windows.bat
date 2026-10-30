@@ -2,21 +2,21 @@
 setlocal
 
 echo ==============================================
-echo    🧬 AI Research Assistant - Setup & Run
+echo    AI Research Assistant - Setup and Run
 echo ==============================================
 
-if not exist "config\config.py" (
-    echo [WARNING] 'config.py' not found!
-    echo Copying 'config_example.py'...
-    copy config\config_example.py config\config.py
+if not exist ".env" (
+    echo [WARNING] '.env' not found!
+    echo Copying '.env.example'...
+    copy .env.example .env
     echo.
-    echo [STOPPED] Please enter your API Key in 'config/config.py' and run the script again.
+    echo [STOPPED] Please open '.env', set LLM_PROVIDER and the matching API key, and run the script again.
     pause
     exit /b
 )
 
 if not exist ".venv" (
-    echo [INFO] Creating virtual environment (.venv)...
+    echo [INFO] Creating virtual environment .venv...
     python -m venv .venv
 ) else (
     echo [OK] Virtual environment exists.
